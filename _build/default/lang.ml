@@ -47,51 +47,6 @@ let is_value v =
   | _ -> false
 
 
-type type_L1= Int | Bool | Unit
-
-type type_loc = Intref
-
-(*Then we need a Gamma thing*)
-type typeEnv = (loc* type_loc) list
-
-
-let rec infertype gamma e =
-  (*Now we just need to walk through our statements defininig the Ternary relation!*)
-  match e with 
-  | Integer _ -> Some Int
-  | Bool _ -> Some Bool
-  | Op (e1,oper,e2) ->
-    (match (infertype gamma e1, infertype gamma e2) with
-    |(Some Int, Some Int)->
-      (match oper with 
-      | Plus -> Some Int
-      | GTEQ -> Some Bool)
-    | _ -> None)
-  | If (e1,e2,e3) -> 
-    (match infertype gamma e1 with 
-    |Some Bool -> (match (infertype gamma e2, infertype gamma e3) with
-      | (Some a, Some b) -> if a=b then Some a else None
-      | _ -> None)
-    | _ -> None)
-  | Assign (loc, e) -> (match lookup gamma loc with 
-   |Some Intref -> (match infertype gamma e with
-    | Some Int -> Some Unit
-    | _ -> None)
-   | None -> None)
-  | Deref loc -> (match lookup gamma loc with
-    | Some Intref -> Some Int
-    | None -> None)
-  | Skip -> Some Unit
-  | Seq (e1,e2) -> (match (infertype gamme e1, infertype gamma e2) with
-    | (Some Unit, Some t) -> Some t
-    | _ -> None)
-  | While (e1,e2) -> (match (infertype gamma e1, infertype gamma e2) with
-    | (Some Bool, Some Unit) -> Some Unit
-    | _ -> None)
-  | _ -> None
-
-
-
 let rec reduce (e,s) = 
   match e with
   |Integer _ | Boolean _ | Skip -> None

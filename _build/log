@@ -1,9 +1,9 @@
 # dune build
 # OCAMLPARAM: unset
 # Shared cache: enabled-except-user-rules
-# Shared cache location: /home/matthew/.cache/dune/db
-# Workspace root: /home/matthew/Tutorials/Semantics_Langs
-# Auto-detected concurrency: 16
+# Shared cache location: /Users/matthewwarren/.cache/dune/db
+# Workspace root: /Users/matthewwarren/Docs/Random_programming/Semantics_Langs
+# Auto-detected concurrency: 8
 # Dune context:
 #  { name = "default"
 #  ; kind = "default"
@@ -13,8 +13,37 @@
 #  ; build_dir = In_build_dir "default"
 #  ; instrument_with = []
 #  }
-$ /home/matthew/.opam/default/bin/ocamlc.opt -config > /tmp/dune_97d1ab_output
-$ (cd _build/default && /home/matthew/.opam/default/bin/ocamldep.opt -modules -impl l1_ocaml.ml) > _build/default/.l1_ocaml.eobjs/dune__exe__L1_ocaml.impl.d
-$ (cd _build/default && /home/matthew/.opam/default/bin/ocamlc.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -w -49 -nopervasives -nostdlib -g -bin-annot -bin-annot-occurrences -I .l1_ocaml.eobjs/byte -no-alias-deps -opaque -o .l1_ocaml.eobjs/byte/dune__exe.cmo -c -impl .l1_ocaml.eobjs/dune__exe.ml-gen)
-$ (cd _build/default && /home/matthew/.opam/default/bin/ocamldep.opt -modules -intf l1_ocaml.mli) > _build/default/.l1_ocaml.eobjs/dune__exe__L1_ocaml.intf.d
-$ (cd _build/default && /home/matthew/.opam/default/bin/ocamlopt.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -w -49 -nopervasives -nostdlib -g -I .l1_ocaml.eobjs/byte -I .l1_ocaml.eobjs/native -cmi-file .l1_ocaml.eobjs/byte/dune__exe.cmi -no-alias-deps -opaque -o .l1_ocaml.eobjs/native/dune__exe.cmx -c -impl .l1_ocaml.eobjs/dune__exe.ml-gen)
+$ /Users/matthewwarren/.opam/default/bin/ocamlc.opt -config > /var/folders/v3/tzw840wn7wx5jbk4_5675c240000gn/T/dune_28200c_output
+$ (cd _build/default && /Users/matthewwarren/.opam/default/bin/ocamldep.opt -modules -impl lang.ml) > _build/default/.lang.eobjs/dune__exe__Lang.impl.d
+$ (cd _build/default && /Users/matthewwarren/.opam/default/bin/ocamldep.opt -modules -intf lang.mli) > _build/default/.lang.eobjs/dune__exe__Lang.intf.d
+$ (cd _build/default && /Users/matthewwarren/.opam/default/bin/ocamlc.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -w -49 -nopervasives -nostdlib -g -bin-annot -bin-annot-occurrences -I .lang.eobjs/byte -no-alias-deps -opaque -o .lang.eobjs/byte/dune__exe.cmo -c -impl .lang.eobjs/dune__exe.ml-gen)
+$ (cd _build/default && /Users/matthewwarren/.opam/default/bin/ocamlc.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -bin-annot -bin-annot-occurrences -I .lang.eobjs/byte -no-alias-deps -opaque -open Dune__exe -o .lang.eobjs/byte/dune__exe__Lang.cmi -c -intf lang.mli)
+$ (cd _build/default && /Users/matthewwarren/.opam/default/bin/ocamlopt.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -w -49 -nopervasives -nostdlib -g -I .lang.eobjs/byte -I .lang.eobjs/native -cmi-file .lang.eobjs/byte/dune__exe.cmi -no-alias-deps -opaque -o .lang.eobjs/native/dune__exe.cmx -c -impl .lang.eobjs/dune__exe.ml-gen)
+$ (cd _build/default && /Users/matthewwarren/.opam/default/bin/ocamlopt.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -I .lang.eobjs/byte -I .lang.eobjs/native -cmi-file .lang.eobjs/byte/dune__exe__Lang.cmi -no-alias-deps -opaque -open Dune__exe -o .lang.eobjs/native/dune__exe__Lang.cmx -c -impl lang.ml)
+> File "lang.ml", line 165, characters 8-20:
+> 165 | let rec prettyreduce (e,s) = (Printf.printf "%s" ("      "^(prettyprintconfig (e,s))) ;
+>               ^^^^^^^^^^^^
+> Error (warning 39 [unused-rec-flag]): unused rec flag.
+>
+> File "lang.ml", line 2, characters 0-30:
+> 2 | type store  = (loc * int) list 
+>     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> Error (warning 34 [unused-type-declaration]): unused type store.
+>
+> File "lang.ml", line 5, characters 12-16:
+> 5 | type oper = Plus | GTEQ
+>                 ^^^^
+> Error (warning 37 [unused-constructor]): constructor Plus is never used to build values.
+> (However, this constructor appears in patterns.)
+>
+> File "lang.ml", line 5, characters 17-23:
+> 5 | type oper = Plus | GTEQ
+>                      ^^^^^^
+> Error (warning 37 [unused-constructor]): constructor GTEQ is never used to build values.
+> (However, this constructor appears in patterns.)
+>
+> File "lang.ml", line 108, characters 8-16:
+> 108 | let rec evaluate (e,s) =
+>               ^^^^^^^^
+> Error (warning 32 [unused-value-declaration]): unused value evaluate.
+[2]
