@@ -1,1 +1,1 @@
-lang.ml: List Printf
+lang.ml: Printf

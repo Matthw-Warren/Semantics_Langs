@@ -2,7 +2,7 @@ type loc = string
 type store  = (loc * int) list 
 
 
-type oper = Plus | GTEQ
+type oper = Plus | GTEQ 
 
 type expr = 
   | Integer of int
@@ -24,15 +24,16 @@ match store with
 |(l,value)::tl -> if l = loc then Some value else lookup tl loc
 
 
-let rec update_helper left right loc newvalue = 
-match right with
-| [] -> None
-| (l,_) ::tl -> 
-  if (l= loc) then Some (List.concat [ left; [(loc, newvalue)]; tl])
-  else update_helper (List.concat [left; [(l,newvalue)]]) tl loc newvalue
+let rec update' front s (l,n) = 
+  match s with
+  | [] -> None
+  | (l',n')::s' ->
+    if l=l' then 
+      Some(front @ ((l,n)::s'))
+    else 
+      update' ((l',n')::front) s' (l,n)
 
-let update store loc newvalue = update_helper [] store loc newvalue
-
+let update s l n = update' [] s (l,n)
 
 
 (*Now we implement reduction of configurations  - ie. steps in our transition system
@@ -47,6 +48,51 @@ let is_value v =
   | _ -> false
 
 
+type type_L1= Int | Bool | Unit
+
+type type_loc = Intref
+
+(*Then we need a Gamma thing*)
+type typeEnv = (loc* type_loc) list
+
+
+let rec infertype gamma e =
+  (*Now we just need to walk through our statements defininig the Ternary relation!*)
+  match e with 
+  | Integer _ -> Some Int
+  | Boolean _ -> Some Bool
+  | Op (e1,oper,e2) ->
+    (match (infertype gamma e1, infertype gamma e2) with
+    |(Some Int, Some Int)->
+      (match oper with 
+      | Plus -> Some Int
+      | GTEQ -> Some Bool)
+    | _ -> None)
+  | If (e1,e2,e3) -> 
+    (match infertype gamma e1 with 
+    |Some Bool -> (match (infertype gamma e2, infertype gamma e3) with
+      | (Some a, Some b) -> if a=b then Some a else None
+      | _ -> None)
+    | _ -> None)
+  | Assign (loc, e) -> (match lookup gamma loc with 
+   |Some Intref -> (match infertype gamma e with
+    | Some Int -> Some Unit
+    | _ -> None)
+   | None -> None)
+  | Deref loc -> (match lookup gamma loc with
+    | Some Intref -> Some Int
+    | None -> None)
+  | Skip -> Some Unit
+  | Seq (e1,e2) -> (match (infertype gamma e1, infertype gamma e2) with
+    | (Some Unit, Some t) -> Some t
+    | _ -> None)
+  | While (e1,e2) -> (match (infertype gamma e1, infertype gamma e2) with
+    | (Some Bool, Some Unit) -> Some Unit
+    | _ -> None)
+
+
+
+
 let rec reduce (e,s) = 
   match e with
   |Integer _ | Boolean _ | Skip -> None
@@ -55,15 +101,15 @@ let rec reduce (e,s) =
     | (Integer x, Integer y) -> 
       (match op with
       |Plus ->Some (Integer (x+y), s)
-      |GTEQ -> Some (Boolean (x<=y),s))
-    | (e1, e2) -> if is_value e1 then 
-      (match reduce (e2,s) with 
+      |GTEQ -> Some (Boolean (x>=y),s))
+    | (e1, e2) -> if is_value e2 then 
+      (match reduce (e1,s) with 
       | None ->None
-      | Some (e2,s) -> Some (Op (e1,op,e2), s))
+      | Some (e1,s) -> Some (Op (e1,op,e2), s))
     else 
-      (match reduce (e1,s) with
+      (match reduce (e2,s) with
       |None -> None
-      |Some (e1,s) -> Some( Op (e1, op, e2), s))
+      |Some (e2,s) -> Some( Op (e1, op, e2), s))
   )
   | Deref loc -> 
     (match lookup s loc with
@@ -74,7 +120,7 @@ let rec reduce (e,s) =
     (match exp with
     | Integer x -> 
       (match update s loc x with
-      |Some sprime -> Some (Skip, sprime)
+      |Some sprime -> Some (Integer x, sprime)
       |None -> None
       )
     | e -> 
@@ -84,6 +130,7 @@ let rec reduce (e,s) =
     )  
   | Seq(e1,e2)->
     (match e1 with
+    |Integer _ | Boolean _ -> Some (e2,s)
     |Skip -> Some (e2,s)
     |e -> 
       (match reduce (e,s) with 
@@ -116,7 +163,7 @@ let rec evaluate (e,s) =
 (*Now we just implement some nice pretty printing*)
 
 
-let pp_oper op = match op with Plus -> "+" | GTEQ -> ">="
+let pp_oper op = match op with Plus -> "+" | GTEQ -> ">=" 
 
 
 let rec pp_store_helper store curr =
@@ -167,10 +214,47 @@ let rec prettyreduce (e,s) = (Printf.printf "%s" ("      "^(prettyprintconfig (e
 
   
 
-let e = Seq( Assign ("l1",Integer 3), Deref "l1")
+(***Exercise 1*)
+(*Cant make an expression that corresp to multiplication by including another couple of locations in our store.*)
+let mull1l2 = Seq( 
+  Seq(  
+    Seq( Assign("l3", Deref "l1"), Assign( "l4", Integer 0)) ,
+
+    While( Op( Deref "l3", GTEQ, Integer 1  ) ,
+     Seq( Assign( "l4" , Op(Deref "l4", Plus, Deref"l2")), Assign( "l3", Op(Deref "l3", Plus, Integer (-1)))) ))
+ 
+ 
+ ,Assign( "l2", Deref "l4"))
+
+let e = While ( Op( Deref "l1" , GTEQ, Integer 1),
+Seq( mull1l2,
+ Assign("l1" , Op(Deref "l1", Plus , Integer (-1)))) )
+
 
 (* {l1=0 } *)
-let s = [("l1",0)]
+let s = [("l1",10); ("l2", 1); ("l3", 0) ; ("l4", 0)]
+
+
+
+(*** Exercise 2 check*)
+let e =
+  Seq( Assign("l0", Integer 7), Assign( "l1", Op( Deref "l0", Plus , Integer 2)) )
+
+let s = [("l0", 0) ; ("l1", 0)]
+
+
+
+
+
+(***Ex 4 test*)
+
+let e = Op( Deref("l0"), Plus, Deref("l1"))
+let s= [("l0", 23); ("l1", 34)]
+
+
+(***Ex 5 Test*)
+let e = Seq ( Assign ( "l0" , Integer 100 ), Deref "l0" ) 
+let s = [("l0", 1)]
 
 let doit () = 
   prettyreduce (e, s)
