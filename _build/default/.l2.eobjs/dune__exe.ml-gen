@@ -3,5 +3,8 @@
 (** @canonical Dune__exe.L1_ocaml *)
 module L1_ocaml = Dune__exe__L1_ocaml
 
+(** @canonical Dune__exe.L2 *)
+module L2 = Dune__exe__L2
+
 (** @canonical Dune__exe.Lang *)
 module Lang = Dune__exe__Lang

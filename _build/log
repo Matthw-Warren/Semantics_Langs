@@ -13,67 +13,82 @@
 #  ; build_dir = In_build_dir "default"
 #  ; instrument_with = []
 #  }
-$ /home/matthew/.opam/default/bin/ocamlc.opt -config > /tmp/dune_2c794d_output
-$ (cd _build/default && /home/matthew/.opam/default/bin/ocamldep.opt -modules -impl lang.ml) > _build/default/.lang.eobjs/dune__exe__Lang.impl.d
-$ (cd _build/default && /home/matthew/.opam/default/bin/ocamlopt.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -I .lang.eobjs/byte -I .lang.eobjs/native -cmi-file .lang.eobjs/byte/dune__exe__Lang.cmi -no-alias-deps -opaque -open Dune__exe -o .lang.eobjs/native/dune__exe__Lang.cmx -c -impl lang.ml)
-> File "lang.ml", line 212, characters 8-20:
-> 212 | let rec prettyreduce (e,s) = (Printf.printf "%s" ("      "^(prettyprintconfig (e,s))) ;
+$ /home/matthew/.opam/default/bin/ocamlc.opt -config > /tmp/dune_344390_output
+$ (cd _build/default && /home/matthew/.opam/default/bin/ocamldep.opt -modules -impl l2.ml) > _build/default/.l2.eobjs/dune__exe__L2.impl.d
+$ (cd _build/default && /home/matthew/.opam/default/bin/ocamldep.opt -modules -intf l2.mli) > _build/default/.l2.eobjs/dune__exe__L2.intf.d
+$ (cd _build/default && /home/matthew/.opam/default/bin/ocamlc.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -w -49 -nopervasives -nostdlib -g -bin-annot -bin-annot-occurrences -I .l2.eobjs/byte -no-alias-deps -opaque -o .l2.eobjs/byte/dune__exe.cmo -c -impl .l2.eobjs/dune__exe.ml-gen)
+$ (cd _build/default && /home/matthew/.opam/default/bin/ocamlc.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -bin-annot -bin-annot-occurrences -I .l2.eobjs/byte -no-alias-deps -opaque -open Dune__exe -o .l2.eobjs/byte/dune__exe__L2.cmi -c -intf l2.mli)
+$ (cd _build/default && /home/matthew/.opam/default/bin/ocamlopt.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -w -49 -nopervasives -nostdlib -g -I .l2.eobjs/byte -I .l2.eobjs/native -cmi-file .l2.eobjs/byte/dune__exe.cmi -no-alias-deps -opaque -o .l2.eobjs/native/dune__exe.cmx -c -impl .l2.eobjs/dune__exe.ml-gen)
+$ (cd _build/default && /home/matthew/.opam/default/bin/ocamlopt.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -I .l2.eobjs/byte -I .l2.eobjs/native -cmi-file .l2.eobjs/byte/dune__exe__L2.cmi -no-alias-deps -opaque -open Dune__exe -o .l2.eobjs/native/dune__exe__L2.cmx -c -impl l2.ml)
+> File "l2.ml", line 309, characters 8-20:
+> 309 | let rec prettyreduce (e,s) = (Printf.printf "%s" ("      "^(prettyprintconfig (e,s))) ;
 >               ^^^^^^^^^^^^
 > Error (warning 39 [unused-rec-flag]): unused rec flag.
 >
-> File "lang.ml", line 2, characters 0-30:
-> 2 | type store  = (loc * int) list 
->     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> Error (warning 34 [unused-type-declaration]): unused type store.
->
-> File "lang.ml", line 53, characters 16-22:
-> 53 | type type_loc = Intref
->                      ^^^^^^
-> Error (warning 37 [unused-constructor]): constructor Intref is never used to build values.
+> File "l2.ml", line 39, characters 12-16:
+> 39 | type oper = Plus | GTEQ
+>                  ^^^^
+> Error (warning 37 [unused-constructor]): constructor Plus is never used to build values.
 > (However, this constructor appears in patterns.)
 >
-> File "lang.ml", line 56, characters 0-35:
-> 56 | type typeEnv = (loc* type_loc) list
->      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> Error (warning 34 [unused-type-declaration]): unused type typeEnv.
+> File "l2.ml", line 39, characters 17-23:
+> 39 | type oper = Plus | GTEQ
+>                       ^^^^^^
+> Error (warning 37 [unused-constructor]): constructor GTEQ is never used to build values.
+> (However, this constructor appears in patterns.)
 >
-> File "lang.ml", line 59, characters 8-17:
-> 59 | let rec infertype gamma e =
->              ^^^^^^^^^
-> Error (warning 32 [unused-value-declaration]): unused value infertype.
+> File "l2.ml", line 76, characters 0-29:
+> 76 | type store = (loc * int) list
+>      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> Error (warning 34 [unused-type-declaration]): unused type store.
 >
-> File "lang.ml", line 155, characters 8-16:
-> 155 | let rec evaluate (e,s) =
+> File "l2.ml", line 111, characters 12-13:
+> 111 |   | Integer n -> None
+>                   ^
+> Error (warning 27 [unused-var-strict]): unused variable n.
+>
+> File "l2.ml", line 112, characters 12-13:
+> 112 |   | Boolean b -> None
+>                   ^
+> Error (warning 27 [unused-var-strict]): unused variable b.
+>
+> File "l2.ml", line 166, characters 8-16:
+> 166 | let rec evaluate (e,s) = 
 >               ^^^^^^^^
 > Error (warning 32 [unused-value-declaration]): unused value evaluate.
 >
-> File "lang.ml", line 229, characters 4-5:
-> 229 | let e = While ( Op( Deref "l1" , GTEQ, Integer 1),
->           ^
-> Error (warning 32 [unused-value-declaration]): unused value e.
+> File "l2.ml", line 182, characters 2-27:
+> 182 |   | Func of type_L2*type_L2
+>         ^^^^^^^^^^^^^^^^^^^^^^^^^
+> Error (warning 37 [unused-constructor]): unused constructor Func.
 >
-> File "lang.ml", line 235, characters 4-5:
-> 235 | let s = [("l1",10); ("l2", 1); ("l3", 0) ; ("l4", 0)]
->           ^
-> Error (warning 32 [unused-value-declaration]): unused value s.
+> File "l2.ml", line 187, characters 0-34:
+> 187 | type typeEnv = (loc*type_loc) list 
+>       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> Error (warning 34 [unused-type-declaration]): unused type typeEnv.
 >
-> File "lang.ml", line 240, characters 4-5:
-> 240 | let e =
->           ^
-> Error (warning 32 [unused-value-declaration]): unused value e.
+> File "l2.ml", line 207, characters 12-13:
+> 207 |   | Integer n -> Some Ty_int
+>                   ^
+> Error (warning 27 [unused-var-strict]): unused variable n.
 >
-> File "lang.ml", line 243, characters 4-5:
-> 243 | let s = [("l0", 0) ; ("l1", 0)]
->           ^
-> Error (warning 32 [unused-value-declaration]): unused value s.
+> File "l2.ml", line 208, characters 12-13:
+> 208 |   | Boolean b -> Some Ty_bool
+>                   ^
+> Error (warning 27 [unused-var-strict]): unused variable b.
 >
-> File "lang.ml", line 251, characters 4-5:
-> 251 | let e = Op( Deref("l0"), Plus, Deref("l1"))
->           ^
-> Error (warning 32 [unused-value-declaration]): unused value e.
+> File "l2.ml", line 284, characters 19-20:
+> 284 |       (function (l,n) -> function (l',n') -> compare l l')
+>                          ^
+> Error (warning 27 [unused-var-strict]): unused variable n.
 >
-> File "lang.ml", line 252, characters 4-5:
-> 252 | let s= [("l0", 23); ("l1", 34)]
->           ^
-> Error (warning 32 [unused-value-declaration]): unused value s.
+> File "l2.ml", line 284, characters 38-40:
+> 284 |       (function (l,n) -> function (l',n') -> compare l l')
+>                                             ^^
+> Error (warning 27 [unused-var-strict]): unused variable n'.
+>
+> File "l2.ml", line 329, characters 4-9:
+> 329 | let doit2 () = infertype [("l1",Ty_intref)] (Seq( Assign ("l1",Integer 3), Deref "l1"))
+>           ^^^^^
+> Error (warning 32 [unused-value-declaration]): unused value doit2.
 [2]
