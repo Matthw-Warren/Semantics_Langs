@@ -31,15 +31,50 @@ can be reused without having to rewrite this out!*)
 
 
 (* *********************)
-(* the abstract syntax *)
+(* the raw abstract syntax - then the new abstract syntax which respects alpha conversion for local scoping of variables. *)
 (* *********************)
 
 type loc = string
 
 type oper = Plus | GTEQ
 
+type var_raw = string
+
+
+(* types *)
+
+type type_expr =
+  | Int
+  | Unit
+  | Bool
+  | Func of type_expr * type_expr
+
+type type_loc =
+  | Ty_intref
+
+type typeEnv = (loc*type_loc) list 
+
+
+type expr_raw = 
+   Integer_raw of int
+ | Boolean_raw of bool
+ | Op_raw of expr_raw * oper * expr_raw
+ | If_raw of expr_raw * expr_raw * expr_raw
+ | Assign_raw of loc * expr_raw
+ | Deref_raw of loc
+ | Skip_raw
+ | Seq_raw of expr_raw * expr_raw
+ | While_raw of expr_raw * expr_raw
+ | Var_raw of var_raw
+ | Fn_raw of var_raw * type_expr * expr_raw
+ | App_raw of expr_raw * expr_raw
+ | Let_raw of var_raw * type_expr * expr_raw * expr_raw
+ | Letrecfn_raw of var_raw * type_expr * var_raw * type_expr * expr_raw * expr_raw
+
+
+
 type expr = 
-  | Integer of int
+    Integer of int
   | Boolean of bool
   | Op of expr * oper * expr
   | If of expr * expr * expr
@@ -48,18 +83,76 @@ type expr =
   | Skip
   | Seq of expr * expr
   | While of expr * expr
+  | Var of int
+  | Fn of type_expr * expr
+  | App of expr * expr
+  | Let of  type_expr * expr * expr
+  | Letrecfn of type_expr * type_expr * expr * expr
 
 
-(* **********************************)
-(* an interpreter for the semantics *)
-(* **********************************)
+(*Cool, now we need a way of resolving a raw expr into a real expr  -essentially for any variable, 
+we go up to the most recent scope where its defined, and count how many scopes we passed through to get there!*)
 
-let is_value v = 
+(*First lets count from a list of raw_expressions! (which will be the vars of exprs that define scope)*)
+let rec find_first x lst m  = 
+  match lst with 
+  | [] -> None
+  | hd::tl-> if hd = x then Some m else find_first x tl (m+1)
+
+(*Here lst will be our current function stack!*)
+
+exception Resolve of string
+
+let rec resolve lst raw = 
+  match raw with
+  | Integer_raw n -> Integer n 
+  | Boolean_raw n -> Boolean n
+  | Op_raw (e1, oper, e2) -> Op (resolve lst e1, oper,  resolve lst e2)
+  | If_raw (e1, e2, e3) -> If (resolve lst e1, resolve lst e2, resolve lst e3)
+  | Assign_raw (loc, e) -> Assign (loc, resolve lst e)
+  | Deref_raw loc -> Deref loc 
+  | Skip_raw -> Skip
+  | Seq_raw (e1,e2) -> Seq (resolve lst e1, resolve lst e2)
+  | While_raw (e1,e2) -> While (resolve lst e1, resolve lst e2)
+  | Var_raw x -> (match (find_first x lst 0) with 
+    | None -> raise (Resolve "NOT FECKIN CLOSED")
+    | Some m -> Var m)
+  | Fn_raw (v1, t , e) -> Fn (t , resolve (v1::lst) e)
+  | App_raw (e1, e2) -> App(resolve lst e1, resolve lst e2)
+  | Let_raw (x, t, e1,e2) -> Let(t, resolve lst e1, resolve (x::lst) e2)
+  | Letrecfn_raw (f,tf,y, ty, e1,e2) -> Letrecfn(tf, ty , resolve (y::(f::lst)) e1, resolve (f::lst) e2)
+
+
+
+
+
+(*Having got our expressions using De Brujin indices -can implement substitution
+We can just do multiple subs as a sequence of single subs*)
+(*type should be expr -> var -> expr -> expr*)
+(*IN fact : can just do as expr -> int -> expr -> expr using De Brujin! hence why we did it. Can just pattern match to Var m otherwise*)
+let rec sub e1 m e2 = 
+  match e2 with
+  | Integer _ | Boolean _ -> e2
+  | Op (e,oper, e') -> Op( sub e1 m e , oper,  sub e1 m e')
+  | 
+
+
+
+
+
+
+  let is_value v = 
   match v with
   | Integer _ -> true
   | Boolean _ -> true
   | Skip -> true
   | _ -> false
+
+(* **********************************)
+(* an interpreter for the semantics *)
+(* **********************************)
+
+
 
   (* In the semantics, a store is a finite partial function from
   locations to integers.  In the implementation, we represent a store
@@ -173,18 +266,6 @@ let rec evaluate (e,s) =
 (* typing                           *)
 (* **********************************)
 
-(* types *)
-
-type type_L2 =
-  | Ty_int
-  | Ty_unit
-  | Ty_bool
-  | Func of type_L2*type_L2
-
-type type_loc =
-  | Ty_intref
-
-type typeEnv = (loc*type_loc) list 
 
 (* in the semantics, type environments gamma are partial functions
 from locations to the singleton set {intref}. Here, just as we did for

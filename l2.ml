@@ -31,15 +31,50 @@ can be reused without having to rewrite this out!*)
 
 
 (* *********************)
-(* the abstract syntax *)
+(* the raw abstract syntax - then the new abstract syntax which respects alpha conversion for local scoping of variables. *)
 (* *********************)
 
 type loc = string
 
 type oper = Plus | GTEQ
 
+type var_raw = string
+
+
+(* types *)
+
+type type_expr =
+  | Int
+  | Unit
+  | Bool
+  | Func of type_expr * type_expr
+
+type type_loc =
+  | Ty_intref
+
+type typeEnv = (loc*type_loc) list 
+
+
+type expr_raw = 
+   Integer_raw of int
+ | Boolean_raw of bool
+ | Op_raw of expr_raw * oper * expr_raw
+ | If_raw of expr_raw * expr_raw * expr_raw
+ | Assign_raw of loc * expr_raw
+ | Deref_raw of loc
+ | Skip_raw
+ | Seq_raw of expr_raw * expr_raw
+ | While_raw of expr_raw * expr_raw
+ | Var_raw of var_raw
+ | Fn_raw of var_raw * type_expr * expr_raw
+ | App_raw of expr_raw * expr_raw
+ | Let_raw of var_raw * type_expr * expr_raw * expr_raw
+ | Letrecfn_raw of var_raw * type_expr * var_raw * type_expr * expr_raw * expr_raw
+
+
+
 type expr = 
-  | Integer of int
+    Integer of int
   | Boolean of bool
   | Op of expr * oper * expr
   | If of expr * expr * expr
@@ -48,18 +83,80 @@ type expr =
   | Skip
   | Seq of expr * expr
   | While of expr * expr
+  | Var of int
+  | Fn of type_expr * expr
+  | App of expr * expr
+  | Let of  type_expr * expr * expr
+  | Letrecfn of type_expr * type_expr * expr * expr
 
 
-(* **********************************)
-(* an interpreter for the semantics *)
-(* **********************************)
+(*Cool, now we need a way of resolving a raw expr into a real expr  -essentially for any variable, 
+we go up to the most recent scope where its defined, and count how many scopes we passed through to get there!*)
 
-let is_value v = 
+(*First lets count from a list of raw_expressions! (which will be the vars of exprs that define scope)*)
+let rec find_first x lst m  = 
+  match lst with 
+  | [] -> None
+  | hd::tl-> if hd = x then Some m else find_first x tl (m+1)
+
+(*Here lst will be our current function stack!*)
+
+exception Resolve of string
+
+let rec resolve lst raw = 
+  match raw with
+  | Integer_raw n -> Integer n 
+  | Boolean_raw n -> Boolean n
+  | Op_raw (e1, oper, e2) -> Op (resolve lst e1, oper,  resolve lst e2)
+  | If_raw (e1, e2, e3) -> If (resolve lst e1, resolve lst e2, resolve lst e3)
+  | Assign_raw (loc, e) -> Assign (loc, resolve lst e)
+  | Deref_raw loc -> Deref loc 
+  | Skip_raw -> Skip
+  | Seq_raw (e1,e2) -> Seq (resolve lst e1, resolve lst e2)
+  | While_raw (e1,e2) -> While (resolve lst e1, resolve lst e2)
+  | Var_raw x -> (match (find_first x lst 0) with 
+    | None -> raise (Resolve "NOT FECKIN CLOSED")
+    | Some m -> Var m)
+  | Fn_raw (v1, t , e) -> Fn (t , resolve (v1::lst) e)
+  | App_raw (e1, e2) -> App(resolve lst e1, resolve lst e2)
+  | Let_raw (x, t, e1,e2) -> Let(t, resolve lst e1, resolve (x::lst) e2)
+  | Letrecfn_raw (f,tf,y, ty, e1,e2) -> Letrecfn(tf, ty , resolve (y::(f::lst)) e1, resolve (f::lst) e2)
+
+
+
+(*Having got our expressions using De Brujin indices -can implement substitution
+We can just do multiple subs as a sequence of single subs*)
+(*type should be expr -> var -> expr -> expr*)
+(*IN fact : can just do as expr -> int -> expr -> expr using De Brujin! hence why we did it. Can just pattern match to Var m otherwise*)
+let rec sub e1 m e2 = 
+  match e2 with
+  | Integer _ | Boolean _ | Skip  -> e2
+  | Op (e,oper, e') -> Op( sub e1 m e , oper,  sub e1 m e')
+  | If (e, e', e'') -> If ( sub e1 m e, sub e1 m e' , sub e1 m e'')
+  | Assign (loc, e) -> Assign (loc, sub e1 m e)
+  | Deref loc -> Deref loc
+  | Seq(e, e') -> Seq ( sub e1 m e , sub e1 m e')
+  | While( e ,e') -> While ( sub e1 m e, sub e1 m e')
+  (*Now we get down to business*)
+  | Var n as e2 -> if n=m then e1 else e2
+  | Fn (t, e) -> Fn(t, sub e1 (m+1) e) 
+  | App (e ,e') -> App(sub e1 m e, sub e1 m e')
+  | Let(t, e, e') -> Let(t, sub e1 m e, sub e1 (m+1) e' )
+  | Letrecfn(tf,ty,e,e') -> Letrecfn(tf ,ty , sub e1 (m+2) e, sub e1 (m+1) e') 
+
+ 
+
+  let is_value v = 
   match v with
   | Integer _ -> true
   | Boolean _ -> true
   | Skip -> true
+  | Fn _ -> true
   | _ -> false
+
+(* **********************************)
+(* an interpreter for the semantics *)
+(* **********************************)
 
   (* In the semantics, a store is a finite partial function from
   locations to integers.  In the implementation, we represent a store
@@ -106,10 +203,17 @@ let update s (l,n) = update' [] s (l,n)
   system, so the comments indicating that particular lines of code
   implement particular semantic rules are not the whole story.  *)
 
+
+(*We dont need an exception - since we're using options*)
+exception Reduce of string (*I believe this is to capture non-closedness - which happens when we locate a free variable!*)
+
+(*First few cases are copied straight from L1!*)
+(*We note that we're using CBV (call by value) so we reduce the expression that will be an input first, moreover since we're dealing with 
+our abstract syntax trees, we again neednt worry about whehter associativity and such is being done correctly, we can just assume some parser has done this job for us!*)
 let rec reduce (e,s) = 
   match e with
-  | Integer n -> None
-  | Boolean b -> None
+  | Integer _ -> None
+  | Boolean _ -> None
   | Op (e1,opr,e2) -> 
       (match (e1,opr,e2) with
       | (Integer n1, Plus, Integer n2) -> Some(Integer (n1+n2), s)   (*op + *)
@@ -154,7 +258,23 @@ let rec reduce (e,s) =
         (match reduce (e1,s) with
         | Some (e1',s') -> Some(Seq (e1',e2), s')           (* (seq2) *)
         | None -> None ) )
-
+  | Var _ -> raise (Reduce "UNBOUND VARIABLE - program not closed!")
+  | Fn _ -> None
+  | App (e1, e2) -> 
+      if not (is_value e1) then
+        (match reduce (e1,s) with 
+        |None -> None 
+        |Some (e1,s) -> Some (App(e1, e2) , s))
+      else if not (is_value e2) then
+        (match reduce (e2,s) with 
+        |None -> None 
+        |Some (e2,s) -> Some (App(e1, e2) , s))
+      else (match e1 with
+      | Fn(_, e) -> Some( sub e1 0 e, s ) 
+      | _ -> None)
+  | Let(t, e1 ,e2) -> if is_value e1 then Some ( sub e1 0 e2, s) else 
+    (match reduce(e1, s) with None -> None | Some (e1,s) -> Some (Let(t,e1,e2) ,s)  )
+  | Letrecfn(tf,ty,e1,e2) -> None (*To be done!*)
 
   (* now define the many-step evaluation function
 
@@ -173,18 +293,6 @@ let rec evaluate (e,s) =
 (* typing                           *)
 (* **********************************)
 
-(* types *)
-
-type type_L2 =
-  | Ty_int
-  | Ty_unit
-  | Ty_bool
-  | Func of type_L2*type_L2
-
-type type_loc =
-  | Ty_intref
-
-type typeEnv = (loc*type_loc) list 
 
 (* in the semantics, type environments gamma are partial functions
 from locations to the singleton set {intref}. Here, just as we did for
