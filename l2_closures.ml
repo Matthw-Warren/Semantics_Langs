@@ -126,6 +126,7 @@ let rec resolve lst raw =
 We can just do multiple subs as a sequence of single subs*)
 (*type should be expr -> var -> expr -> expr*)
 (*IN fact : can just do as expr -> int -> expr -> expr using De Brujin! hence why we did it. Can just pattern match to Var m otherwise*)
+(*NOte this is subbing e1 into e2.*)
 let rec sub e1 m e2 = 
   match e2 with
   | Integer _ | Boolean _ | Skip  -> e2
@@ -320,7 +321,7 @@ let rec reduce (e,s) =
         |None -> None 
         |Some (e2,s) -> Some (App(e1, e2) , s))
       else (match e1 with
-      | Fn(_, e) -> Some( sub e1 0 e, s ) 
+      | Fn(_, e) -> Some( sub e2 0 e, s ) 
       | _ -> None)
   | Let(t, e1 ,e2) -> if is_value e1 then Some ( sub e1 0 e2, s) else 
     (match reduce(e1, s) with None -> None | Some (e1,s) -> Some (Let(t,e1,e2) ,s)  )
@@ -465,7 +466,7 @@ let rec prettyprintexpr e =
       "while " ^ (prettyprintexpr e1 ) 
       ^ " do " ^ (prettyprintexpr e2)
   | Var n -> "Var" ^ string_of_int n
-  | App (e1,e2) -> prettyprintexpr e1 ^ prettyprintexpr e2
+  | App (e1,e2) -> prettyprintexpr e1 ^" " ^ prettyprintexpr e2
   | Fn(t, e) -> "fn :" ^ prettyprinttype t ^ "=> " ^ prettyprintexpr e
   | Let(t,e1,e2) -> "let val :" ^ prettyprinttype t ^ " = " ^ prettyprintexpr e1 ^ " in " ^ prettyprintexpr e2 ^ " end"
   | Letrecfn(tf,ty,e1,e2) -> "let val rec :" ^ prettyprinttype tf ^ " = " ^ prettyprintexpr (Fn(ty,e1)) ^ " in " ^ prettyprintexpr e2 ^ " end"
@@ -515,19 +516,30 @@ let rec prettyreduce (e,s) = (Printf.printf "%s" ("      "^(prettyprintconfig (e
 (* **************)
 
 (* l1:=3;!l1 *)
-let e = Seq( Assign ("l1",Integer 3), Deref "l1")
+let e = Letrecfn_raw("f",
+ Func (Int, Int),
+  "y",
+  Int,
+  If_raw(Op_raw(Var_raw "y", GTEQ, Integer_raw 1) , Op_raw(Var_raw "y" , Plus, App_raw(Var_raw "f", Op_raw(Var_raw "y", Plus, Integer_raw (-1) ))), Integer_raw 0 ),
+  App_raw(Var_raw "f", Integer_raw 10)) 
 
+
+(* let e = If_raw(Boolean_raw false, Integer_raw 0, Integer_raw 1 ) *)
 (* {l1=0 } *)
 let s = [("l1",0)]
+let expr = resolve [] e
 
-let doit () = 
-  prettyreduce (e, s)
+
+let doit () = prettyreduce (expr,s)
     
 
 (*
  infertype [("l1",intref)] (Seq( Assign ("l1",Integer 3), Deref "l1"));;
 *)
-let doit2 () = infertype ([("l1",Intref)] ,[])(Seq( Assign ("l1",Integer 3), Deref "l1"))
+let doit2 () = match infertype ([("l1",Intref)] ,[]) expr with 
+|None -> print_endline "NONE"
+|Some t -> print_endline (prettyprinttype t)
+
+
 
 let _ = doit ()
-
